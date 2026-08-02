@@ -3,43 +3,218 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | BrewBoard</title>
-  </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
-    <canvas id="unity-canvas" width=960 height=600 tabindex="-1" style="width: 960px; height: 600px; background: #231F20"></canvas>
-    <script src="Build/BrewBoardWeb_Rel_0.1.8.loader.js"></script>
-    <script>
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
+    <title>Unity Web Player | LTA BrewBoard</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
 
-        var canvas = document.querySelector("#unity-canvas");
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
-        canvas.style.position = "fixed";
+    <!-- Mobile viewport + safe area -->
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=no,
+                   viewport-fit=cover">
 
-        document.body.style.textAlign = "left";
-
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: black;
+        touch-action: none;
       }
 
-      createUnityInstance(document.querySelector("#unity-canvas"), {
+      /* Rotated wrapper for forced landscape */
+      #orientation-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        transform-origin: center center;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      /* Unity container respects safe areas */
+      #unity-container {
+        position: fixed;
+        top: env(safe-area-inset-top);
+        left: env(safe-area-inset-left);
+        width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+        height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        z-index: 2;
+      }
+
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        background: black;
+      }
+
+      /* Portrait block / rotate message */
+      #rotate-warning {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: black;
+        color: white;
+        font-size: 2rem;
+        text-align: center;
+        padding-top: 40vh;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- Forced landscape wrapper -->
+    <div id="orientation-wrapper">
+      <div id="unity-container" class="unity-desktop">
+        <canvas id="unity-canvas" width=1200 height=675 tabindex="-1"></canvas>
+
+        <div id="unity-loading-bar">
+          <div id="unity-logo"></div>
+          <div id="unity-progress-bar-empty">
+            <div id="unity-progress-bar-full"></div>
+          </div>
+        </div>
+
+        <div id="unity-warning"></div>
+
+        <div id="unity-footer">
+          <div id="unity-logo-title-footer"></div>
+          <div id="unity-fullscreen-button"></div>
+          <div id="unity-build-title">LTA BrewBoard</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portrait block -->
+    <div id="rotate-warning">Please rotate your device to landscape</div>
+
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/BrewboardWeb_Rel_0.2.1.loader.js";
+      var config = {
         arguments: [],
-        dataUrl: "Build/BrewBoardWeb_Rel_0.1.8.data",
-        frameworkUrl: "Build/BrewBoardWeb_Rel_0.1.8.framework.js",
-        codeUrl: "Build/BrewBoardWeb_Rel_0.1.8.wasm",
+        dataUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.data.unityweb",
+        frameworkUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.framework.js.unityweb",
+        codeUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
-        productName: "BrewBoard",
-        productVersion: "0.1.8",
-        // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
-        // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
-      }).then((unityInstance) => {
-      }).catch((message) => {
-        alert(message);
-      });
+        productName: "LTA BrewBoard",
+        productVersion: "0.2.1",
+        showBanner: unityShowBanner
+      };
+
+      /* --- Mobile fullscreen + forced landscape --- */
+
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent);
+      }
+
+      function goFullscreenAndroid() {
+        if (canvas.requestFullscreen) {
+          canvas.requestFullscreen().catch(()=>{});
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(()=>{});
+        }
+      }
+
+      function updateOrientation() {
+        const wrapper = document.getElementById("orientation-wrapper");
+        const warning = document.getElementById("rotate-warning");
+
+        const portrait = window.innerHeight > window.innerWidth;
+
+        if (portrait) {
+          warning.style.display = "block";
+
+          wrapper.style.transform = "rotate(90deg)";
+          wrapper.style.width = window.innerHeight + "px";
+          wrapper.style.height = window.innerWidth + "px";
+          wrapper.style.left = (window.innerWidth - window.innerHeight)/2 + "px";
+          wrapper.style.top = (window.innerHeight - window.innerWidth)/2 + "px";
+        } else {
+          warning.style.display = "none";
+
+          wrapper.style.transform = "rotate(0deg)";
+          wrapper.style.width = "100vw";
+          wrapper.style.height = "100vh";
+          wrapper.style.left = "0";
+          wrapper.style.top = "0";
+        }
+      }
+
+      window.addEventListener("resize", updateOrientation);
+      window.addEventListener("orientationchange", updateOrientation);
+      updateOrientation();
+
+      function RequestFullscreenFromUnity() {
+        if (!isIOS()) {
+          goFullscreenAndroid();
+        }
+      }
+
+      /* --- Unity loader --- */
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+      } else {
+        canvas.style.width = "1200px";
+        canvas.style.height = "675px";
+      }
+
+      document.querySelector("#unity-loading-bar").style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+        }).then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+
+          document.querySelector("#unity-fullscreen-button").onclick = () => {
+            RequestFullscreenFromUnity();
+            unityInstance.SetFullscreen(1);
+          };
+
+        }).catch((message) => {
+          alert(message);
+        });
+      };
+
+      document.body.appendChild(script);
     </script>
   </body>
 </html>
