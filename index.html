@@ -4,10 +4,12 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity Web Player | LTA BrewBoard</title>
+
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <link rel="manifest" href="manifest.webmanifest">
 
-    <!-- Mobile viewport + safe area -->
+    <!-- Responsive + safe-area -->
     <meta name="viewport"
           content="width=device-width,
                    initial-scale=1.0,
@@ -24,13 +26,13 @@
         touch-action: none;
       }
 
-      /* Rotated wrapper for forced landscape */
+      /* Wrapper that rotates on mobile portrait */
       #orientation-wrapper {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
+        top: env(safe-area-inset-top);
+        left: env(safe-area-inset-left);
+        width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+        height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
         transform-origin: center center;
         overflow: hidden;
         z-index: 1;
@@ -38,11 +40,16 @@
 
       /* Unity container respects safe areas */
       #unity-container {
-        position: fixed;
-        top: env(safe-area-inset-top);
-        left: env(safe-area-inset-left);
-        width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
-        height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        box-sizing: border-box;
         z-index: 2;
       }
 
@@ -50,11 +57,11 @@
       #unity-canvas {
         width: 100%;
         height: 100%;
-        touch-action: none;
         background: black;
+        touch-action: none;
       }
 
-      /* Portrait block / rotate message */
+      /* Portrait block overlay */
       #rotate-warning {
         display: none;
         position: fixed;
@@ -67,7 +74,7 @@
         font-size: 2rem;
         text-align: center;
         padding-top: 40vh;
-        z-index: 1000;
+        z-index: 9999; /* ensure it is always above everything */
       }
     </style>
   </head>
@@ -76,9 +83,7 @@
 
     <!-- Forced landscape wrapper -->
     <div id="orientation-wrapper">
-      <div id="unity-container" class="unity-desktop">
-
-        <!-- Responsive canvas (width/height removed) -->
+      <div id="unity-container">
         <canvas id="unity-canvas" tabindex="-1"></canvas>
 
         <div id="unity-loading-bar">
@@ -89,12 +94,6 @@
         </div>
 
         <div id="unity-warning"></div>
-
-        <div id="unity-footer">
-          <div id="unity-logo-title-footer"></div>
-          <div id="unity-fullscreen-button"></div>
-          <div id="unity-build-title">LTA BrewBoard</div>
-        </div>
       </div>
     </div>
 
@@ -102,10 +101,19 @@
     <div id="rotate-warning">Please rotate your device to landscape</div>
 
     <script>
-      var canvas = document.querySelector("#unity-canvas");
+      /* Register service worker for PWA */
+      window.addEventListener("load", function () {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("ServiceWorker.js");
+        }
+      });
+
+      const canvas = document.querySelector("#unity-canvas");
+      const loadingBar = document.querySelector("#unity-loading-bar");
+      const progressBarFull = document.querySelector("#unity-progress-bar-full");
+      const warningBanner = document.querySelector("#unity-warning");
 
       function unityShowBanner(msg, type) {
-        var warningBanner = document.querySelector("#unity-warning");
         function updateBannerVisibility() {
           warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
         }
@@ -123,33 +131,10 @@
         updateBannerVisibility();
       }
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/BrewboardWeb_Rel_0.2.1.loader.js";
-      var config = {
-        arguments: [],
-        dataUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.data.unityweb",
-        frameworkUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.framework.js.unityweb",
-        codeUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1.wasm.unityweb",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Los Tres Amigos",
-        productName: "LTA BrewBoard",
-        productVersion: "0.2.1",
-        showBanner: unityShowBanner
-      };
+      /* --- Forced landscape logic --- */
 
-      /* --- Mobile fullscreen + forced landscape --- */
-
-      function isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent);
-      }
-
-      function goFullscreenAndroid() {
-        if (canvas.requestFullscreen) {
-          canvas.requestFullscreen().catch(()=>{});
-        }
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock("landscape").catch(()=>{});
-        }
+      function isMobile() {
+        return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       }
 
       function updateOrientation() {
@@ -158,7 +143,7 @@
 
         const portrait = window.innerHeight > window.innerWidth;
 
-        if (portrait) {
+        if (isMobile() && portrait) {
           warning.style.display = "block";
 
           wrapper.style.transform = "rotate(90deg)";
@@ -170,10 +155,10 @@
           warning.style.display = "none";
 
           wrapper.style.transform = "rotate(0deg)";
-          wrapper.style.width = "100vw";
-          wrapper.style.height = "100vh";
-          wrapper.style.left = "0";
-          wrapper.style.top = "0";
+          wrapper.style.width = "calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right))";
+          wrapper.style.height = "calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))";
+          wrapper.style.left = "env(safe-area-inset-left)";
+          wrapper.style.top = "env(safe-area-inset-top)";
         }
       }
 
@@ -181,34 +166,32 @@
       window.addEventListener("orientationchange", updateOrientation);
       updateOrientation();
 
-      function RequestFullscreenFromUnity() {
-        if (!isIOS()) {
-          goFullscreenAndroid();
-        }
-      }
-
       /* --- Unity loader --- */
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-      }
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/BrewboardWeb_Rel_0.2.1_PWA.loader.js";
 
-      document.querySelector("#unity-loading-bar").style.display = "block";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1_PWA.data.unityweb",
+        frameworkUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1_PWA.framework.js.unityweb",
+        codeUrl: buildUrl + "/BrewboardWeb_Rel_0.2.1_PWA.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Los Tres Amigos",
+        productName: "LTA BrewBoard",
+        productVersion: "0.2.1",
+        showBanner: unityShowBanner
+      };
+
+      loadingBar.style.display = "block";
 
       var script = document.createElement("script");
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+          progressBarFull.style.width = (100 * progress) + "%";
         }).then((unityInstance) => {
-          document.querySelector("#unity-loading-bar").style.display = "none";
-
-          document.querySelector("#unity-fullscreen-button").onclick = () => {
-            RequestFullscreenFromUnity();
-            unityInstance.SetFullscreen(1);
-          };
-
+          loadingBar.style.display = "none";
         }).catch((message) => {
           alert(message);
         });
