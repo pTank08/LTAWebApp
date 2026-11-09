@@ -46,6 +46,21 @@
         font-size: 20px;
       }
 
+      #fullscreen-button {
+        display: block;
+        position: fixed;
+        z-index: 5;
+        top: 16px;
+        right: 16px;
+        padding: 10px 14px;
+        border: 1px solid #00d9ff;
+        border-radius: 6px;
+        background: #141f28;
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
       @media (orientation: portrait) {
         #orientation-lock {
           display: flex;
@@ -59,6 +74,7 @@
   </head>
   <body>
     <canvas id="unity-canvas" width="1200" height="675" tabindex="-1"></canvas>
+    <button id="fullscreen-button" type="button">Full Screen</button>
     <div id="orientation-lock" role="alert">
       <div>
         <h1>Rotate Your Device</h1>
@@ -67,11 +83,12 @@
     </div>
     <script>
       const canvas = document.querySelector("#unity-canvas");
+      const fullscreenButton = document.querySelector("#fullscreen-button");
       const buildUrl = "Build";
       const config = {
-        dataUrl: buildUrl + "/BrewboardWeb_Dev_0.3.0.data.unityweb",
-        frameworkUrl: buildUrl + "/BrewboardWeb_Dev_0.3.0.framework.js.unityweb",
-        codeUrl: buildUrl + "/BrewboardWeb_Dev_0.3.0.wasm.unityweb",
+        dataUrl: buildUrl + "/BrewboardWeb_Dev_0.3.1.data.unityweb",
+        frameworkUrl: buildUrl + "/BrewboardWeb_Dev_0.3.1.framework.js.unityweb",
+        codeUrl: buildUrl + "/BrewboardWeb_Dev_0.3.1.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
         productName: "LTA BrewBoard",
@@ -79,11 +96,15 @@
       };
 
       const script = document.createElement("script");
-      script.src = buildUrl + "/BrewboardWeb_Dev_0.3.0.loader.js";
+      script.src = buildUrl + "/BrewboardWeb_Dev_0.3.1.loader.js";
       script.onload = () => {
-        createUnityInstance(canvas, config).catch((message) => {
-          alert(message);
-        });
+        createUnityInstance(canvas, config)
+          .then((unityInstance) => {
+            fullscreenButton.addEventListener("click", () => unityInstance.SetFullscreen(1));
+          })
+          .catch((message) => {
+            alert(message);
+          });
       };
       document.body.appendChild(script);
     </script>
