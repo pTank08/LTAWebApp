@@ -93,9 +93,9 @@
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const buildUrl = "Build";
       const config = {
-        dataUrl: buildUrl + "/BrewboardWeb_Dev_0.3.2.data.unityweb",
-        frameworkUrl: buildUrl + "/BrewboardWeb_Dev_0.3.2.framework.js.unityweb",
-        codeUrl: buildUrl + "/BrewboardWeb_Dev_0.3.2.wasm.unityweb",
+        dataUrl: buildUrl + "/BB_0.3.3.data.unityweb",
+        frameworkUrl: buildUrl + "/BB_0.3.3.framework.js.unityweb",
+        codeUrl: buildUrl + "/BB_0.3.3.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
         productName: "LTA BrewBoard",
@@ -129,7 +129,7 @@
       }
 
       const script = document.createElement("script");
-      script.src = buildUrl + "/BrewboardWeb_Dev_0.3.2.loader.js";
+      script.src = buildUrl + "/BB_0.3.3.loader.js";
       script.onload = () => {
         createUnityInstance(canvas, config)
           .then((unityInstance) => {
