@@ -52,13 +52,13 @@
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const buildUrl = "Build";
       const config = {
-        dataUrl: buildUrl + "/BrewboardWeb_Dev_0.3.7.data.unityweb",
-        frameworkUrl: buildUrl + "/BrewboardWeb_Dev_0.3.7.framework.js.unityweb",
-        codeUrl: buildUrl + "/BrewboardWeb_Dev_0.3.7.wasm.unityweb",
+        dataUrl: buildUrl + "/BrewboardWeb_Dev_0.3.8.data.unityweb",
+        frameworkUrl: buildUrl + "/BrewboardWeb_Dev_0.3.8.framework.js.unityweb",
+        codeUrl: buildUrl + "/BrewboardWeb_Dev_0.3.8.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
         productName: "LTA BrewBoard",
-        productVersion: "0.3.7",
+        productVersion: "0.3.8",
         // Keep Unity's render surface in step with the canvas CSS size.
         // This matters on mobile Safari when its browser controls appear or hide.
         matchWebGLToCanvasSize: true,
@@ -88,7 +88,7 @@
       }
 
       const script = document.createElement("script");
-      script.src = buildUrl + "/BrewboardWeb_Dev_0.3.7.loader.js";
+      script.src = buildUrl + "/BrewboardWeb_Dev_0.3.8.loader.js";
       script.onload = () => {
         createUnityInstance(canvas, config)
           .then((unityInstance) => {
