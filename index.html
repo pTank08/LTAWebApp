@@ -21,40 +21,32 @@
         background: #231F20;
       }
 
-      #fullscreen-button {
-        display: block;
+      #fullscreen-hotspot {
         position: fixed;
         z-index: 5;
-        top: 16px;
-        right: 16px;
-        padding: 10px 14px;
-        border: 1px solid #00d9ff;
-        border-radius: 6px;
-        background: #141f28;
-        color: #fff;
-        font-size: 16px;
+        left: 2%;
+        top: 3%;
+        width: 12%;
+        height: 12%;
+        padding: 0;
+        border: 0;
+        background: transparent;
         cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
-
-      #fullscreen-button.fullscreen-unavailable {
-        display: none;
-      }
-
     </style>
   </head>
   <body>
     <canvas id="unity-canvas" width="1200" height="675" tabindex="-1"></canvas>
-    <button id="fullscreen-button" type="button">Full Screen</button>
+    <button id="fullscreen-hotspot" type="button" aria-label="Toggle full screen"></button>
     <script>
       const canvas = document.querySelector("#unity-canvas");
-      const fullscreenButton = document.querySelector("#fullscreen-button");
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const buildUrl = "Build";
       const config = {
-        dataUrl: buildUrl + "/Brewboard_Dev_1.0.data.unityweb",
-        frameworkUrl: buildUrl + "/Brewboard_Dev_1.0.framework.js.unityweb",
-        codeUrl: buildUrl + "/Brewboard_Dev_1.0.wasm.unityweb",
+        dataUrl: buildUrl + "/Brewboard_Rel_1.0.data.unityweb",
+        frameworkUrl: buildUrl + "/Brewboard_Rel_1.0.framework.js.unityweb",
+        codeUrl: buildUrl + "/Brewboard_Rel_1.0.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
         productName: "LTA BrewBoard",
@@ -83,16 +75,54 @@
         window.visualViewport.addEventListener("resize", syncCanvasToViewport);
       }
 
-      if (isIOS) {
-        fullscreenButton.classList.add("fullscreen-unavailable");
-      }
-
       const script = document.createElement("script");
-      script.src = buildUrl + "/Brewboard_Dev_1.0.loader.js";
+      script.src = buildUrl + "/Brewboard_Rel_1.0.loader.js";
       script.onload = () => {
         createUnityInstance(canvas, config)
           .then((unityInstance) => {
-            fullscreenButton.addEventListener("click", () => unityInstance.SetFullscreen(1));
+            let lastFullscreenToggleAt = 0;
+            const toggleFullscreen = () => {
+              const now = performance.now();
+              if (now - lastFullscreenToggleAt < 500) return;
+              lastFullscreenToggleAt = now;
+
+              if (document.fullscreenElement || document.webkitFullscreenElement) {
+                unityInstance.SetFullscreen(0);
+              } else {
+                unityInstance.SetFullscreen(1);
+              }
+            };
+
+            const isInFullscreenHotspot = (event) => {
+              const viewport = window.visualViewport;
+              const width = viewport ? viewport.width : window.innerWidth;
+              const height = viewport ? viewport.height : window.innerHeight;
+              return event.clientX >= width * 0.02 && event.clientX <= width * 0.14 &&
+                event.clientY >= height * 0.03 && event.clientY <= height * 0.15;
+            };
+
+            let lastTap = null;
+            // Unity promotes only the canvas into the browser's fullscreen layer.
+            // Listen at the document capture phase so the same hotspot remains
+            // available when the sibling button is no longer hit-testable.
+            document.addEventListener("dblclick", (event) => {
+              if (!isInFullscreenHotspot(event)) return;
+
+              event.preventDefault();
+              toggleFullscreen();
+            }, true);
+            document.addEventListener("pointerup", (event) => {
+              if (event.pointerType === "mouse" || !isInFullscreenHotspot(event)) return;
+
+              event.preventDefault();
+              const now = performance.now();
+              const point = { x: event.clientX, y: event.clientY, time: now };
+              const isDoubleTap = lastTap && now - lastTap.time < 350 &&
+                Math.hypot(point.x - lastTap.x, point.y - lastTap.y) < 32;
+
+              lastTap = isDoubleTap ? null : point;
+              if (isDoubleTap) toggleFullscreen();
+            }, true);
           })
           .catch((message) => {
             alert(message);
