@@ -44,9 +44,9 @@
       const canvas = document.querySelector("#unity-canvas");
       const buildUrl = "Build";
       const config = {
-        dataUrl: buildUrl + "/Brewboard_Rel_2.3.data.unityweb",
-        frameworkUrl: buildUrl + "/Brewboard_Rel_2.3.framework.js.unityweb",
-        codeUrl: buildUrl + "/Brewboard_Rel_2.3.wasm.unityweb",
+        dataUrl: buildUrl + "/Brewboard_Rel_2.4.data.unityweb",
+        frameworkUrl: buildUrl + "/Brewboard_Rel_2.4.framework.js.unityweb",
+        codeUrl: buildUrl + "/Brewboard_Rel_2.4.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Los Tres Amigos",
         productName: "LTA BrewBoard",
@@ -76,7 +76,7 @@
       }
 
       const script = document.createElement("script");
-      script.src = buildUrl + "/Brewboard_Rel_2.3.loader.js";
+      script.src = buildUrl + "/Brewboard_Rel_2.4.loader.js";
       script.onload = () => {
         createUnityInstance(canvas, config)
           .then((unityInstance) => {
